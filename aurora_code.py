@@ -6,13 +6,19 @@ import cvxpy as cp
 generators = pd.read_csv('generators.csv')  # Generator data
 hourly_demand = pd.read_csv('hourlydemandbynode.csv')  # Hourly demand at nodes
 
+
 # Extract relevant data from `generators.csv`
 gen_costs = generators["MC"].values  # Marginal costs (£/MWh)
 gen_caps = generators["CAP"].values  # Generator capacities (MW)
 
 # Extract demand data from `hourly_demandbynode.csv`
-hourly_demand = hourly_demand.iloc[:, 1:].to_numpy()  # Exclude the first column (hours)
+hourly_demand = hourly_demand.iloc[:, 1:]  # Exclude the first column (hours)
+#print(hourly_demand.head())
+#print(hourly_demand.iloc[:, 0])
+#sum_of_col_1 = np.sum(hourly_demand.iloc[:, 0])
+#print(sum_of_col_1)
 total_hourly_demand = np.sum(hourly_demand, axis=1)  # Total demand across all nodes for each hour
+#print(total_hourly_demand)
 
 # Problem dimensions
 num_generators = len(gen_costs)
