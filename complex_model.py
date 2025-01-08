@@ -79,6 +79,7 @@ for l in range(num_lines):
 problem = cp.Problem(objective, constraints)
 result = problem.solve(solver=cp.SCS, eps=1e-6, verbose=True)
 
+
 # Results
 print("Optimal generation schedule (MW):")
 print(P.value)
