@@ -2,51 +2,38 @@ import pandas as pd
 import numpy as np
 import cvxpy as cp
 
-# Load CSV files
+# Load data
+# Generators data
 generators = pd.read_csv('generators.csv')  # Generator data
-hourly_demand = pd.read_csv('hourlydemandbynode.csv')  # Hourly demand
-line_ratings = pd.read_csv('lineratings.csv')  # Line ratings
-shift_factor_matrix = pd.read_csv('shiftfactormatrix.csv')  # Shift factor matrix
-
-# Extract relevant data from `generators.csv`
 gen_costs = generators["MC"].values  # Marginal costs (£/MWh)
 gen_caps = generators["CAP"].values  # Generator capacities (MW)
+gen_nodes = generators["NODE"].values  # Nodes where generators are located
+
+# Hourly demand data
+hourly_demand = pd.read_csv('hourlydemandbynode.csv')  # Hourly demand at 20 nodes
+demand_nodes = hourly_demand.columns[1:].astype(int).values  # Nodes with demand
+hourly_demand = hourly_demand.iloc[:, 1:].to_numpy()  # Demand data (hours x nodes)
+total_hours = hourly_demand.shape[0]
+
+# Line ratings
+line_ratings = pd.read_csv('lineratings.csv')  # Transmission line ratings
+line_limits = line_ratings["RATING_MW"].replace("inf", np.inf).astype(float).values
+
+# Shift factor matrix
+shift_factors = pd.read_csv('shiftfactormatrix.csv', index_col=0)  # PTDF matrix
+shift_factors = shift_factors.apply(pd.to_numeric, errors='coerce')  # Convert to numeric
+shift_factors.columns = shift_factors.columns.astype(int)
+shift_factors = shift_factors.loc[:, demand_nodes]  # Restrict to demand nodes
+
+# Problem dimensions
 num_generators = len(gen_costs)
-
-# Generator-to-node mapping
-nodes = list(shift_factor_matrix.columns[1:])  # Node IDs from the shift factor matrix
-generator_nodes = generators["NODE"].astype(str).values
-generator_to_node_matrix = np.zeros((len(nodes), num_generators))
-
-for g, gen_node in enumerate(generator_nodes):
-    if gen_node in nodes:
-        generator_to_node_matrix[nodes.index(gen_node), g] = 1
-
-# Process demand matrix
-hourly_demand_nodes = hourly_demand.columns[1:].astype(str)
-num_hours = len(hourly_demand)
-num_nodes = len(nodes)
-
-# Expand the demand matrix to include all 428 nodes
-full_node_demand = np.zeros((num_hours, num_nodes))
-node_indices_in_full_set = [nodes.index(node) for node in hourly_demand_nodes]
-for i, idx in enumerate(node_indices_in_full_set):
-    full_node_demand[:, idx] = hourly_demand.iloc[:, i + 1]
-
-# Extract line limits from `line_ratings.csv`
-line_limits = line_ratings["RATING_MW"].replace('inf', np.inf).astype(float).values
-num_lines = len(line_limits)
-
-# Extract the shift factors matrix
-shift_factors = shift_factor_matrix.iloc[:, 1:].to_numpy()
-
-# Ensure dimensions match
-assert shift_factors.shape == (num_lines, num_nodes), "Shift factor matrix dimensions do not match!"
+num_lines = shift_factors.shape[0]
+num_demand_nodes = len(demand_nodes)
 
 # Decision variables
-P = cp.Variable((num_generators, num_hours))  # Power generation (MW)
+P = cp.Variable((num_generators, total_hours))  # Power generation at each generator (MW)
 
-# Objective function: Minimise total generation cost
+# Objective function: Minimize total generation cost
 objective = cp.Minimize(cp.sum(cp.multiply(gen_costs[:, None], P)))
 
 # Constraints
@@ -57,25 +44,47 @@ for g in range(num_generators):
     constraints.append(P[g, :] >= 0)  # Non-negative generation
     constraints.append(P[g, :] <= gen_caps[g])  # Capacity limits
 
-# Electricity demand balance constraints and line flow constraints
-for t in range(num_hours):
-    # Net injection per node
-    node_net_injections = generator_to_node_matrix @ P[:, t] - full_node_demand[t, :]
-    
-    for l in range(num_lines):
-        line_flow = cp.sum(cp.multiply(shift_factors[l, :], node_net_injections))  # Line flow
+# Electricity demand balance constraints
+for t in range(total_hours):
+    for i, node in enumerate(demand_nodes):
+        gen_at_node = [g for g, n in enumerate(gen_nodes) if n == node]
+        # Add a constraint directly for each demand node
+        constraints.append(cp.sum(P[gen_at_node, t]) >= hourly_demand[t, i])
+
+# # Transmission line flow constraints
+# for l in range(num_lines):
+#     for t in range(total_hours):
+#         # Calculate line flow using the shift factor matrix
+#         line_flow = shift_factors.iloc[l, :] @ (
+#             cp.hstack([cp.sum(P[gen_at_node, t]) for gen_at_node in [[g for g, n in enumerate(gen_nodes) if n == node] for node in demand_nodes]]) - hourly_demand[t, :]
+#         )
+#         constraints.append(line_flow <= line_limits[l])  # Upper limit
+#         constraints.append(line_flow >= -line_limits[l])  # Lower limit
+
+# Transmission line flow constraints
+for l in range(num_lines):
+    for t in range(total_hours):
+        # Calculate line flow using the shift factor matrix
+        line_flow = cp.sum(
+            cp.multiply(
+                shift_factors.iloc[l, :].values,  # Convert Series to NumPy array
+                cp.hstack([cp.sum(P[gen_at_node, t]) for gen_at_node in [[g for g, n in enumerate(gen_nodes) if n == node] for node in demand_nodes]]) - hourly_demand[t, :]
+            )
+        )
         constraints.append(line_flow <= line_limits[l])  # Upper limit
         constraints.append(line_flow >= -line_limits[l])  # Lower limit
 
-# Solve the optimisation problem
+
+# Solve the optimization problem
 problem = cp.Problem(objective, constraints)
-problem.solve(solver=cp.SCS)
+result = problem.solve(solver=cp.SCS, eps=1e-6, verbose=True)
 
 # Results
-optimal_generation = P.value
-optimal_cost = problem.value
+print("Optimal generation schedule (MW):")
+print(P.value)
+print("Optimal cost (£):", problem.value)
 
-# Output results
-print("Optimal generation schedule:")
-print(optimal_generation)
-print("Optimal cost (£):", optimal_cost)
+# Additional outputs
+print("Total demand at each hour (MW):", np.sum(hourly_demand, axis=1))
+print("Total generator capacities (MW):", np.sum(gen_caps))
+print("Line limits (MW):", line_limits)
