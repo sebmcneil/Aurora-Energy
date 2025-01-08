@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import cvxpy as cp
+import matplotlib.pyplot as plt
 
 # Load CSV files
 generators = pd.read_csv('generators.csv')  # Generator data
@@ -53,3 +54,23 @@ optimal_cost = problem.value
 # Print results
 print("Optimal generation: ", optimal_generation) 
 print("Optimal cost: ",optimal_cost)
+
+
+plt.figure(figsize=(12, 6))
+for g in range(num_generators):
+    plt.plot(optimal_generation[g, :], label=f"Generator {g+1}")
+plt.plot(total_hourly_demand, label="Total Demand (MW)", color='black', linestyle='--', linewidth=2)
+plt.xlabel("Hour")
+plt.ylabel("Power (MW)")
+plt.title("Generation Contribution by Generator")
+plt.legend()
+plt.show()
+
+total_cost_by_gen = np.sum(optimal_generation * gen_costs[:, None], axis=1)
+
+plt.figure(figsize=(6, 6))
+plt.pie(total_cost_by_gen, labels=[f"Generator {i+1}" for i in range(num_generators)], autopct='%1.1f%%')
+plt.title("Cost Contribution by Generator")
+plt.show()
+
+
