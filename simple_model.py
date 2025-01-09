@@ -3,6 +3,8 @@ import numpy as np
 import cvxpy as cp
 import matplotlib.pyplot as plt
 
+###### following section loads the data from the csv files and extracts the variables and dimensions to solve the problem
+
 # Load CSV files
 generators = pd.read_csv('generators.csv')  # Generator data
 hourly_demand = pd.read_csv('hourlydemandbynode.csv')  # Hourly demand at nodes
@@ -25,11 +27,21 @@ total_hourly_demand = np.sum(hourly_demand, axis=1)  # Total demand across all n
 num_generators = len(gen_costs)
 num_hours = len(total_hourly_demand)
 
+######
+
+###### this section defines the decision variables and objectives for the problem
+
 # Decision variables
+## this sets up the power output of each generator for each hour as decision variables
 P = cp.Variable((num_generators, num_hours))  # Power generation (MW)
 
 # Objective function: Minimise total generation cost
+## defines the objective to minimise cost
 objective = cp.Minimize(cp.sum(cp.multiply(gen_costs[:, None], P)))
+
+######
+
+###### this section adds the constraints (generator capacity limits and ensures demand is met)
 
 # Constraints
 constraints = []
@@ -43,6 +55,10 @@ for g in range(num_generators):
 for t in range(num_hours):
     constraints.append(cp.sum(P[:, t]) == total_hourly_demand[t])  # Total generation = Total demand
 
+######
+
+###### this section solves the problem using SCS
+
 # Solve the optimisation problem
 problem = cp.Problem(objective, constraints)
 problem.solve(solver=cp.SCS)  # Use SCS solver
@@ -55,6 +71,9 @@ optimal_cost = problem.value
 print("Optimal generation: ", optimal_generation) 
 print("Optimal cost: ",optimal_cost)
 
+######
+
+###### plots
 
 plt.figure(figsize=(12, 6))
 for g in range(num_generators):
