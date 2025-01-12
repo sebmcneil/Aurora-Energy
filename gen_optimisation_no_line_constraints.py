@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Nov 22 13:37:27 2024
+Created on Sun Jan 12 15:20:33 2025
 
 @author: lewisvaughan
 """
@@ -9,6 +9,7 @@ Created on Fri Nov 22 13:37:27 2024
 import pandas as pd
 import numpy as np
 import cvxpy as cp # used for convex optimisation problems, like this one
+
 
 #-------------------------------------------------------------------------------------------------------
 # INPUT DATA
@@ -27,7 +28,20 @@ gen_capacities = np.array( generator_data.loc[:, "CAP"] ) # (MW)
 demand_IDs = np.array(node_demands.columns.astype(int))
 node_IDs = np.array(shift_factor_matrix.columns.astype(int))
 
+
+# GENERATOR AND DEMAND CONTRIBUTIONS AS MATRICES
+# Generator contributions
+gen_indices = {g_ID: np.where(node_IDs == g_ID)[0][0] for g_ID in gen_IDs}  # indices of generators in node_IDs
+gen_identity_mat = np.zeros((len(node_IDs), len(gen_IDs))) # (428,5)
+gen_identity_mat[list(gen_indices.values()), np.arange(len(gen_IDs))] = 1
+
+# Demand contributions
+demand_indices = {d_ID: np.where(node_IDs == d_ID)[0][0] for d_ID in demand_IDs}  # indices of demands in node_IDs
+demand_identity_mat = np.zeros((len(node_IDs), len(demand_IDs))) # (428,20)
+demand_identity_mat[list(demand_indices.values()), np.arange(len(demand_IDs))] = 1
+
 #-------------------------------------------------------------------------------------------------------
+
 
 # DECISION VARIABLES: q_supply - the power supply from each of the 5 generators
 q_supply = cp.Variable( (len(gen_IDs), len(node_demands)), nonneg=True) # (MW)
@@ -44,46 +58,44 @@ objective = cp.Minimize( cp.sum(  cp.multiply(gen_marginal_costs[:, None], q_sup
 constraints = []
 
 # (1) - Total hourly generation must equal the total hourly demand (as assuming no power loss/ have a perfect network)
+"""
 for t in range(len(node_demands)):
     total_hourly_generation = cp.sum(q_supply[:, t])
     total_hourly_demand = cp.sum(node_demands.iloc[t,:]) # sum all the demands at hour t
     constraints.append(total_hourly_generation == total_hourly_demand) # this is an equality constraint
-
-
-# (2) - Line flow constraints (no limits, only calculate the flows)
-gen_indices = {g_ID: np.where(node_IDs == g_ID)[0][0] for g_ID in gen_IDs} # Indices of the generators in list of node_IDs
-demand_indices = {d_ID: np.where(node_IDs == d_ID)[0][0] for d_ID in demand_IDs} # Indices of demand nodes in list of node_IDs
-
-# Compute the net injections for all nodes 
-for t in range(len(node_demands)):
-    net_hourly_injection = np.zeros(len(node_IDs))
+"""
+constraints.append(cp.sum(q_supply, axis=0) == cp.sum(node_demands.values.T, axis=0)) # does same as commented out code 
     
-    # Assign generation to generator nodes using the precomputed indices
-    for i, g_ID in enumerate(gen_IDs):  # iterating over generator IDs
-        g_idx = gen_indices[g_ID]  # use precomputed index
-        net_hourly_injection[g_idx] = q_supply[i, t].value  # generation at time t
-    
-    # Subtract demand contributions from net injections
-    for i, d_ID in enumerate(demand_IDs):
-        d_idx = demand_indices[d_ID] 
-        net_hourly_injection[d_idx] -= node_demands.iloc[t,i] 
-    
-    # Find the power flows (note no constraints on this PF until transmission limits are included)
-    PF = shift_factor_matrix @ net_hourly_injection  # matrix multiplication: (532x428) x (428x1) = (532x1) - the PF in each line
+
+# (2) - Line flow constraints (with maximal power ratings)
+# Calculate net hourly injections using matrix multiplication
+net_injections = gen_identity_mat @ q_supply - demand_identity_mat @ node_demands.values.T  # (428x24)
+
+# Compute power flows for all hours using the shift factor matrix
+PF = shift_factor_matrix.values @ net_injections
 
 
 # (3) - Generator capacity constraints
+"""
 for g in range(len(gen_capacities)):
     for t in range(len(node_demands)):
         constraints.append(q_supply[g,t] <= gen_capacities[g])
+"""
+# No need for the for loops above - broadcasting is being done behind the scenes - extends to each hour column 
+constraints += [q_supply <= gen_capacities[:, None]] # 5x24 and 5x1 - hourly, check supply value is less than capacity
         
-#-------------------------------------------------------------------------------------------------------  
+
+#-------------------------------------------------------------------------------------------------------
 # SOLVE THE OPTIMISATION PROBLEM
 problem = cp.Problem(objective, constraints)
-problem.solve()
+problem.solve(
+    verbose=True,
+    solver=cp.CBC,
+    max_iters=100000  # Optional: Set a maximum number of iterations if needed
+)
 
 # Convert optimal generator dispatch to a pandas DataFrame for better readability
-q_supply_table = pd.DataFrame(q_supply.value, index=gen_IDs, columns=node_demands.index) # 5 rows for generators by 168 columns for hours
+q_supply_table = pd.DataFrame(q_supply.value, index=gen_IDs, columns=node_demands.index)  # 5 rows for generators by 168 columns for hours
 
 # RESULTS
 if problem.status == cp.OPTIMAL:
@@ -94,12 +106,6 @@ if problem.status == cp.OPTIMAL:
     print(q_supply_table)
 else:
     print("NO OPTIMAL SOLUTION FOUND!")
-        
-    
-    
-    
-    
-    
     
     
     
