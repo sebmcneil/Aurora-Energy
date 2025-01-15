@@ -27,22 +27,28 @@ constraints = []
 
 # Power balance
 for t in range(len(node_demands)):
-    # Create net injection as a CVXPY expression
+    # Initialize net injections as a CVXPY expression
     net_injections = cp.Constant(np.zeros(len(node_ids)))
+
+    # Add generation contributions to net injections
     for i, gen_id in enumerate(gen_ids):
         gen_idx = np.where(node_ids == gen_id)[0][0]
         net_injections += cp.Constant(np.eye(len(node_ids))[:, gen_idx]) * q_supply[i, t]
 
+    # Subtract demand contributions from net injections
     for i, demand_id in enumerate(demand_ids):
         demand_idx = np.where(node_ids == demand_id)[0][0]
         net_injections -= cp.Constant(np.eye(len(node_ids))[:, demand_idx]) * node_demands.iloc[t, i]
 
     # Compute power flows
     power_flows = shift_factor_matrix.values @ net_injections
+
+    # Add line flow constraints
     for line in range(len(line_limits)):
         if line_limits[line] != np.inf:
             constraints.append(power_flows[line] <= line_limits[line])
             constraints.append(power_flows[line] >= -line_limits[line])
+
 
 # Generator constraints
 for i, cap in enumerate(gen_caps):
