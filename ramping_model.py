@@ -23,6 +23,7 @@ node_IDs = np.array(shift_factor_matrix.columns.astype(int))
 
 #-------------------------------------------------------------------------------------------------------
 # FUNCTION TO SOLVE DDE AND DETERMINE RAMP RATES
+
 def simulate_dde(tau, delay, P_initial, P_target, duration=10, steps=1000):
     """
     Simulates a generator's ramping response using a delay differential equation (DDE).
@@ -37,19 +38,25 @@ def simulate_dde(tau, delay, P_initial, P_target, duration=10, steps=1000):
         ramp_rate: Approximate ramp rate (MW/hour).
     """
     time = np.linspace(0, duration, steps)
-    
-    def model(Y, t):
-        return (P_target - Y(t - delay)) / tau
-    
-    history = lambda t: P_initial  # Initial condition
+
+    # Define the DDE model
+    def model(P, t):
+        return (P_target - P(t - delay)) / tau
+
+    # Define the history function
+    def history(t):
+        return P_initial
+
+    # Solve the DDE
     response = ddeint(model, history, time)
-    
-    # Approximate ramp rate: Change in power over change in time
+
+    # Approximate ramp rate as the slope over the simulation period
     ramp_rate = (response[-1] - response[0]) / duration
     return abs(ramp_rate)  # Return the absolute value of ramp rate
 
 # Determine ramp rates for generators 3, 4, and 5
 ramp_rates = {}
+
 for gen_id, tau, delay, P_initial, P_target in zip(
     [3, 4, 5], [1.5, 2.0, 2.5], [0.5, 0.7, 1.0], [0, 0, 0], [gen_capacities[2], gen_capacities[3], gen_capacities[4]]
 ):
@@ -106,7 +113,7 @@ for t in range(1, len(node_demands)):
 
 # SOLVE THE OPTIMISATION PROBLEM
 problem = cp.Problem(objective, constraints)
-problem.solve(verbose=True, solver=cp.CBC)
+problem.solve(verbose=True, solver=cp.ECOS)
 
 # RESULTS
 if problem.status == cp.OPTIMAL:
@@ -120,3 +127,36 @@ print("Optimal generator dispatch (MW):")
 print(q_supply_table)
 
 #-------------------------------------------------------------------------------------------------------
+
+
+# Plot the dispatch from generators over the entire week (168 hours)
+plt.figure(figsize=(12, 6))
+for g in range(len(gen_IDs)):
+    plt.plot(q_supply_table.iloc[g, :], label=f"Generator {g+1}")
+plt.xlabel("Hour")
+plt.ylabel("Power Output (MW)")
+plt.title("Generator Dispatch Over the Week")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Plot the dispatch for the first hour for generators 3, 4, and 5 to visualize ramping constraints
+# plt.figure(figsize=(8, 6))
+# for g in [2, 3, 4]:  # Generators 3, 4, and 5 (index 2, 3, 4 due to zero-based indexing)
+#     plt.plot(q_supply_table.iloc[g, :2], label=f"Generator {g+1}")  # First two hours for ramp delay
+# plt.xlabel("Hour")
+# plt.ylabel("Power Output (MW)")
+# plt.title("Generator Dispatch During the First Hour")
+# plt.legend()
+# plt.grid(True)
+# plt.tight_layout()
+# plt.show()
+
+
+
+
+
+
+
+
