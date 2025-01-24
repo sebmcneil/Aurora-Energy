@@ -58,7 +58,7 @@ def simulate_dde(tau, delay, P_initial, P_target, duration=10, steps=1000):
 ramp_rates = {}
 
 for gen_id, tau, delay, P_initial, P_target in zip(
-    [3, 4, 5], [1.5, 2.0, 2.5], [0.5, 0.7, 1.0], [0, 0, 0], [gen_capacities[2], gen_capacities[3], gen_capacities[4]]
+    [3, 4, 5], [1.6, 1.7, 2.5], [0.55, 0.6, 1.0], [0, 0, 0], [gen_capacities[2], gen_capacities[3], gen_capacities[4]]
 ):
     ramp_rates[gen_id] = simulate_dde(tau, delay, P_initial, P_target)
 print("Ramp rates (MW/hour):", ramp_rates)
