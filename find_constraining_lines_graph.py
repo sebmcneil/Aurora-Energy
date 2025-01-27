@@ -138,15 +138,73 @@ total_costs = compute_total_cost_at_upgrades(
     top_n=5
 )
 
-# Plot the total dispatch cost at each step
-plt.figure(figsize=(10, 6))
-plt.plot(range(1, len(total_costs) + 1), total_costs, marker='o')
-plt.title("Total Dispatch Cost Across Upgrade Steps")
-plt.xlabel("Upgrade Step")
-plt.ylabel("Total Dispatch Cost (£)")
-plt.xticks(range(1, len(total_costs) + 1), labels=[f"Step {step}" for step in range(1, len(total_costs) + 1)])
-plt.grid()
+# # Plot the total dispatch cost at each step
+# plt.figure(figsize=(10, 6))
+# plt.plot(range(1, len(total_costs) + 1), total_costs, marker='o')
+# plt.title("Total Dispatch Cost Across Upgrade Steps")
+# plt.xlabel("Upgrade Step")
+# plt.ylabel("Total Dispatch Cost (£)")
+# plt.xticks(range(1, len(total_costs) + 1), labels=[f"Step {step}" for step in range(1, len(total_costs) + 1)])
+# plt.grid()
+# plt.show()
+
+# # Adjust the figure to make all the text larger
+# plt.figure(figsize=(12, 8))
+# plt.plot(range(1, len(total_costs) + 1), total_costs, marker='o')
+# plt.title("Total Dispatch Cost Across Upgrade Steps", fontsize=24,)
+# plt.xlabel("Upgrade Step", fontsize=20, labelpad=10)
+# plt.ylabel("Total Dispatch Cost (£)", fontsize=20, labelpad=10)
+# plt.xticks(range(1, len(total_costs) + 1), labels=[f"Step {step}" for step in range(1, len(total_costs) + 1)], fontsize=14)
+# plt.yticks(fontsize=18)
+# plt.grid()
+# plt.show()
+
+# # Plot with larger fonts and markers
+# plt.figure(figsize=(12, 8))
+# plt.plot(
+#     range(1, len(total_costs) + 1), 
+#     total_costs, 
+#     marker='o', 
+#     markersize=10, 
+#     linewidth=2, 
+#     label="Dispatch Cost"
+# )
+# plt.title("Total Dispatch Cost Across Upgrade Steps", fontsize=22, fontweight='bold')
+# plt.xlabel("Upgrade Step", fontsize=18, labelpad=15)
+# plt.ylabel("Total Dispatch Cost (£)", fontsize=18, labelpad=15)
+# plt.xticks(range(1, len(total_costs) + 1), labels=[f"Step {step}" for step in range(1, len(total_costs) + 1)], fontsize=16)
+# plt.yticks(fontsize=16)
+# plt.grid(True, linestyle='--', linewidth=0.5)
+# plt.legend(fontsize=16)
+# plt.show()
+
+# Plot with adjustments for scientific notation and removing the legend
+plt.figure(figsize=(12, 8))
+plt.plot(
+    range(1, len(total_costs) + 1), 
+    total_costs, 
+    marker='o', 
+    markersize=10, 
+    linewidth=2, 
+    label="Dispatch Cost"
+)
+plt.title("Total Dispatch Cost Across Upgrade Steps", fontsize=22, fontweight='bold')
+plt.xlabel("Upgrade Step", fontsize=18, labelpad=15)
+plt.ylabel("Total Dispatch Cost (£)", fontsize=18, labelpad=15)
+plt.xticks(range(1, len(total_costs) + 1), labels=[f"Step {step}" for step in range(1, len(total_costs) + 1)], fontsize=16)
+plt.yticks(fontsize=16)
+
+# Adjust scientific notation and increase the font size for 1e6
+ax = plt.gca()
+plt.ticklabel_format(style='scientific', axis='y', scilimits=(6, 6))
+ax.yaxis.offsetText.set_fontsize(16)  # Make the offset (1e6) larger
+
+# Remove the legend
+plt.legend().remove()
+
+plt.grid(True, linestyle='--', linewidth=0.5)
 plt.show()
+
 
 # Print total costs
 print("\nTotal Dispatch Costs at Each Upgrade Step:")
