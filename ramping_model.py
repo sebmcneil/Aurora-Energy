@@ -58,10 +58,21 @@ def simulate_dde(tau, delay, P_initial, P_target, duration=10, steps=1000):
 ramp_rates = {}
 
 for gen_id, tau, delay, P_initial, P_target in zip(
-    [3, 4, 5], [1.6, 1.7, 2.5], [0.55, 0.6, 1.0], [0, 0, 0], [gen_capacities[2], gen_capacities[3], gen_capacities[4]]
+    [3, 4, 5], [1.6, 1.7, 2.5], [0.55, 0.6, 1.0], [0, 0, 0], [gen_capacities[4], gen_capacities[4], gen_capacities[4]]
 ):
     ramp_rates[gen_id] = simulate_dde(tau, delay, P_initial, P_target)
+
 print("Ramp rates (MW/hour):", ramp_rates)
+
+# # Define realistic ramp rates based on marginal cost ratios
+# ramp_rates = {}
+# base_ramp_rate = 10  # MW/hour for Generator 3
+# ramp_rate_ratios = [1, 2, 10]  # Ratios relative to Generator 3's ramp rate
+
+# for gen_id, ratio in zip([3, 4, 5], ramp_rate_ratios):
+#     ramp_rates[gen_id] = base_ramp_rate * ratio
+
+# print("Ramp rates (MW/hour):", ramp_rates)
 
 #-------------------------------------------------------------------------------------------------------
 
