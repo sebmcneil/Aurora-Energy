@@ -144,7 +144,7 @@ def adjust_line_ratings(line_ratings_vector, bottleneck_lines):
 
 
 # Main workflow
-def resolve_bottlenecks(line_ratings_vector, max_iterations=5):
+def resolve_bottlenecks(line_ratings_vector, max_iterations=1):
     """
     Resolves bottlenecks in a network by iteratively optimizing line ratings.
     
@@ -228,21 +228,30 @@ demand_identity_mat[list(demand_indices.values()), np.arange(len(demand_IDs))] =
 
 
 # HOURLY AVAILABILITY FOR GENERATORS 1 AND 2
+"""
 # Load solar irradiance data (output from NASA POWER API processing)
 solar_data = pd.read_csv("solar_data_final.csv")
 solar_availability = solar_data["Availability"].values  # Use raw availability values from the data
+"""
+hours = node_demands.shape[0]
+time = np.arange(hours)
+# Solar availability as a sine wave (Generator 2)
+solar_availability = 0.5 * (1 + np.sin(2 * np.pi * time / 24 - np.pi / 2))  # Sine wave shifted to make nighttime 0
+solar_availability = np.clip(solar_availability, 0, 1)  # Ensure values are between 0 and 1
 
 # Generate Weibull-distributed wind availability
 np.random.seed(42)  # Replace 42 with any integer of your choice
-hours = node_demands.shape[0]
 shape, scale = 2.0, 0.8  # Example Weibull parameters
-wind_availability = np.random.weibull(shape, hours) * scale
-wind_availability = np.clip(wind_availability, 0.4, 1.0)  # Ensure at least 40% availability
+wind_availability_gen1 = np.random.weibull(shape, hours) * scale
+wind_availability_gen2 = np.random.weibull(shape, hours) * scale
+
+wind_availability_gen1 = np.clip(wind_availability_gen1, 0.4, 1.0)  # Ensure at least 40% availability
+wind_availability_gen2 = np.clip(wind_availability_gen2, 0.4, 1.0)  # Ensure at least 40% availability
 
 # Create the availability matrix
 availability_matrix = np.ones((len(gen_IDs), hours))
-availability_matrix[0, :] = wind_availability  # Generator 1 (solar)
-availability_matrix[1, :] = wind_availability  # Generator 2 (wind)
+availability_matrix[0, :] = wind_availability_gen1 # Generator 1 (solar)
+availability_matrix[1, :] = solar_availability  # Generator 2 (wind)
 
 
 # DETERMINE RAMP RATES FOR GENERATORS 3, 4 AND 5
