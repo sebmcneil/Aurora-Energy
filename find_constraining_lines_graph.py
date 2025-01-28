@@ -188,16 +188,16 @@ plt.plot(
     linewidth=2, 
     label="Dispatch Cost"
 )
-plt.title("Total Dispatch Cost Across Upgrade Steps", fontsize=22, fontweight='bold')
-plt.xlabel("Upgrade Step", fontsize=18, labelpad=15)
-plt.ylabel("Total Dispatch Cost (£)", fontsize=18, labelpad=15)
-plt.xticks(range(1, len(total_costs) + 1), labels=[f"Step {step}" for step in range(1, len(total_costs) + 1)], fontsize=16)
-plt.yticks(fontsize=16)
+plt.title("Total Dispatch Cost Across Upgrade Steps", fontsize=32, fontweight='bold')
+plt.xlabel("Upgrade Step", fontsize=28, labelpad=15)
+plt.ylabel("Total Dispatch Cost (£)", fontsize=28, labelpad=15)
+plt.xticks(range(1, len(total_costs) + 1), labels=[f"Step {step}" for step in range(1, len(total_costs) + 1)], fontsize=28)
+plt.yticks(fontsize=28)
 
 # Adjust scientific notation and increase the font size for 1e6
 ax = plt.gca()
 plt.ticklabel_format(style='scientific', axis='y', scilimits=(6, 6))
-ax.yaxis.offsetText.set_fontsize(16)  # Make the offset (1e6) larger
+ax.yaxis.offsetText.set_fontsize(28)  # Make the offset (1e6) larger
 
 # Remove the legend
 plt.legend().remove()
