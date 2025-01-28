@@ -210,7 +210,7 @@ line_ratings = pd.read_csv("provided_material/lineratings.csv", index_col=0) # 5
 gen_IDs = np.array( generator_data.loc[:, "NODE"].astype(int) )
 gen_marginal_costs = np.array( generator_data.loc[:, "MC"] ) # (£/MWh) 
 gen_capacities = np.array( generator_data.loc[:, "CAP"] ) # (MW)
-
+# gen_capacities[1] *= 2  # Double the second entry (index 1)
 demand_IDs = np.array(node_demands.columns.astype(int))
 node_IDs = np.array(shift_factor_matrix.columns.astype(int))
 
@@ -241,12 +241,13 @@ solar_availability = np.clip(solar_availability, 0, 1)  # Ensure values are betw
 
 # Generate Weibull-distributed wind availability
 np.random.seed(42)  # Replace 42 with any integer of your choice
-shape, scale = 2.0, 0.8  # Example Weibull parameters
+shape, scale = 2.3, 9.5  # Example Weibull parameters
 wind_availability_gen1 = np.random.weibull(shape, hours) * scale
 wind_availability_gen2 = np.random.weibull(shape, hours) * scale
 
-wind_availability_gen1 = np.clip(wind_availability_gen1, 0.4, 1.0)  # Ensure at least 40% availability
-wind_availability_gen2 = np.clip(wind_availability_gen2, 0.4, 1.0)  # Ensure at least 40% availability
+max_possible_speed = scale * 1.5  # Assume maximum wind speed reaches ~1.5x scale
+wind_availability_gen1 = np.clip(wind_availability_gen1 / max_possible_speed, 0.4, 1.0) # Ensure at least 40% availability
+wind_availability_gen2 = np.clip(wind_availability_gen2 / max_possible_speed, 0.4, 1.0) # Ensure at least 40% availability
 
 # Create the availability matrix
 availability_matrix = np.ones((len(gen_IDs), hours))
