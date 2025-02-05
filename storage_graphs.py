@@ -322,7 +322,7 @@ x_values = np.arange(hours)
 
 # PLOT RESULTS
 
-plt.figure(figsize=(12, 6))
+plt.figure(figsize=(16, 6))
 
 plt.plot(total_demand, label="Total Demand (MW)", color="red", linewidth=2)
 
@@ -337,7 +337,7 @@ plt.xlabel("Hour", fontsize=28)
 plt.ylabel("Power (MW)", fontsize=28)
 plt.xticks(fontsize=28)
 plt.yticks(fontsize=28)
-plt.title("Wind Generation vs Demand w/ Transmission Constraints", fontsize=32, fontweight='bold')
+plt.title("Potential Renewable Surplus vs Demand", fontsize=32, fontweight='bold')
 
 plt.legend(fontsize=24)
 
@@ -489,7 +489,7 @@ plt.xlabel("Wind Turbine Expansion Factor", fontsize=28)
 plt.ylabel("Cost (£)", fontsize=28)
 plt.xticks(fontsize=28)
 plt.yticks(fontsize=28)
-plt.title("Feasibility of Wind Turbine Expansion w/ Storage Costs", fontsize = 32, fontweight = 'bold')
+plt.title("Feasibility of Wind Farm Expansion w/ Storage Costs", fontsize = 32, fontweight = 'bold')
 ax = plt.gca()
 plt.ticklabel_format(style='scientific', axis='y', scilimits=(6, 9))
 ax.yaxis.offsetText.set_fontsize(28)  # Make the offset (1e6) larger
