@@ -592,7 +592,7 @@ plt.xlabel("Wind Farm Multiplier (x Initial Capacity)", fontsize=28)
 
 plt.ylabel("Weeks to Breakeven", fontsize=28)
 
-plt.title("Weeks to Breakeven for Wind Farm Expansion", fontsize=32, fontweight= 'bold')
+plt.title("Weeks to Break-even for Wind Farm Expansion", fontsize=32, fontweight= 'bold')
 plt.xticks(fontsize=28)
 plt.yticks(fontsize=28)
 plt.legend(fontsize=24)
