@@ -64,7 +64,7 @@ solar_availability = 0.5 * (1 + np.sin(2 * np.pi * time / 24 - np.pi / 2))  # Si
 solar_availability = np.clip(solar_availability, 0, 1)  # Ensure values are between 0 and 1
 
 # Generate Weibull-distributed wind availability
-np.random.seed(42)  # Replace 42 with any integer of your choice
+np.random.seed(42)  
 shape, scale = 2.3, 9.5  # Example Weibull parameters
 wind_availability_gen1 = np.random.weibull(shape, hours) * scale
 wind_availability_gen2 = np.random.weibull(shape, hours) * scale
@@ -95,7 +95,7 @@ net_injections = gen_identity_mat @ q_supply - demand_identity_mat @ node_demand
 PF = shift_factor_matrix.values @ net_injections
 
 # Reshape R_PU for broadcasting with PF
-R_PU_reshaped = network_edges['R_PU'].values.reshape(-1, 1)  # Reshape R_PU to (532, 1) for broadcasting
+R_PU_reshaped = network_edges['R_PU'].values.reshape(-1, 1)  # Reshape R_PU to (532, 1) 
 
 # Calculate transmission losses (elementwise multiplication of squared power flow and resistance)
 line_losses = cp.sum(cp.multiply(cp.square(PF), R_PU_reshaped))
@@ -163,7 +163,7 @@ if problem.status == cp.OPTIMAL:
 
     # -------------------------------------------------------------------------------------------------------
     # CALCULATE LOCATIONAL MARGINAL PRICING (LMP)
-    # Debugging: Check initial shapes and indices
+    # debugging doesn't work for LMP calcultion as of now. prints dispatch costs with losses though
     print("Generator Node IDs:", gen_IDs)
     print("Mapped Generator Column Indices:", gen_column_indices)
     print("Max column index:", max(gen_column_indices))  # Should be < 168
@@ -176,7 +176,7 @@ if problem.status == cp.OPTIMAL:
         print("Error extracting relevant shift factors:", e)
         exit()
 
-    print("Shape of relevant_shift_factors:", relevant_shift_factors.shape)  # Debugging
+    print("Shape of relevant_shift_factors:", relevant_shift_factors.shape) 
 
     # Energy price (5 generators × 168 hours)
     energy_price = np.repeat(gen_marginal_costs[:, None], hours, axis=1)
@@ -185,7 +185,7 @@ if problem.status == cp.OPTIMAL:
     # Congestion price calculation
     try:
         congestion_price = np.dot(relevant_shift_factors.values, q_supply.value)  # Expected: (532, 168)
-        print("Shape of congestion_price:", congestion_price.shape)  # Debugging
+        print("Shape of congestion_price:", congestion_price.shape)  
     except Exception as e:
         print("Error computing congestion_price:", e)
         exit()
